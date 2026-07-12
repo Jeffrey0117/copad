@@ -19,7 +19,7 @@ for (const name of ['.env', '.env.production']) {
 
 const PORT = parseInt(process.env.PORT, 10) || 4042;
 const ROOMS_DIR = path.join(__dirname, 'data', 'rooms');
-const ROOM_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const ROOM_RE = /^\d{4}$/;
 const MAX_BYTES = 512 * 1024;
 
 const DEFAULT_CONTENT = [
@@ -83,7 +83,7 @@ const server = http.createServer((req, res) => {
 
   if ((m = p.match(/^\/api\/room\/([^/]+)(\/stream)?$/))) {
     const id = m[1];
-    if (!ROOM_RE.test(id)) return json(res, 400, { ok: false, error: '房號只能用英數、-、_（64 字內）' });
+    if (!ROOM_RE.test(id)) return json(res, 400, { ok: false, error: '房號是 4 位數字' });
 
     if (req.method === 'GET' && m[2] === '/stream') {
       res.writeHead(200, {

@@ -51,21 +51,29 @@
     <div class="logo">co<em>pad</em></div>
     <div class="sub">打個房號，和任何人共同編輯一份筆記</div>
     <form id="f">
-      <input id="room" placeholder="房號，例如 1111" autofocus autocomplete="off">
+      <input id="room" placeholder="4 位數字，例如 1111" autofocus autocomplete="off"
+             inputmode="numeric" maxlength="4" pattern="\d{4}">
       <button type="submit">進房</button>
     </form>
     <div class="err" id="err"></div>
-    <div class="hint">同一個房號＝同一份筆記，知道房號的人都能編輯。<br>房號可用英文、數字、「-」「_」，怕被猜就取長一點。</div>
+    <div class="hint">同一個房號＝同一份筆記，知道房號的人都能編輯。</div>
   </div>
 <script>
-  document.getElementById('f').addEventListener('submit', e => {
-    e.preventDefault();
-    const v = document.getElementById('room').value.trim();
-    if (!/^[A-Za-z0-9_-]{1,64}$/.test(v)) {
-      document.getElementById('err').textContent = '房號只能用英文、數字、-、_（64 字內）';
+  const input = document.getElementById('room');
+  function go() {
+    const v = input.value.trim();
+    if (!/^\d{4}$/.test(v)) {
+      document.getElementById('err').textContent = '房號是 4 位數字';
       return;
     }
     location.href = '/r/' + v;
+  }
+  document.getElementById('f').addEventListener('submit', e => { e.preventDefault(); go(); });
+  // 打滿 4 碼直接進房
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '');
+    document.getElementById('err').textContent = '';
+    if (input.value.length === 4) go();
   });
 </script>
 </body>
