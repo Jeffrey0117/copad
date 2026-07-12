@@ -1,0 +1,10 @@
+{
+  "name": "copad",
+  "version": "1.0.0",
+  "description": "共同編輯筆記：開房共編、SSE 即時同步、md 預覽（hackmd-lite）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}

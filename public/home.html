@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>copad · 共同編輯筆記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f6; --ink: #211f1a; --mute: #98938a; --line: #e6e2d9;
+    --accent: #b07d2e; --card: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(70% 50% at 50% -5%, #f1ede2 0%, transparent 70%);
+    color: var(--ink);
+    font-family: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .box { width: min(440px, 92vw); text-align: center; }
+  .logo {
+    font-family: 'Noto Serif TC', serif; font-weight: 900;
+    font-size: clamp(40px, 8vw, 56px); letter-spacing: .04em; margin-bottom: 10px;
+  }
+  .logo em { font-style: normal; color: var(--accent); }
+  .sub { font-size: 14.5px; color: var(--mute); letter-spacing: .12em; margin-bottom: 44px; line-height: 1.9; }
+  form { display: flex; gap: 10px; }
+  input {
+    flex: 1; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px;
+    font-family: inherit; font-size: 20px; letter-spacing: .15em; text-align: center;
+    padding: 16px 18px; outline: none; color: var(--ink);
+    transition: border-color .2s;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    background: var(--ink); color: var(--bg); border: none; border-radius: 14px;
+    font-family: inherit; font-size: 15px; font-weight: 600; letter-spacing: .18em;
+    padding: 0 28px; cursor: pointer;
+  }
+  button:hover { background: #000; }
+  .hint { margin-top: 26px; font-size: 12.5px; color: var(--mute); letter-spacing: .08em; line-height: 2; }
+  .err { color: #c0564a; font-size: 13px; min-height: 1.4em; margin-top: 14px; letter-spacing: .05em; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">co<em>pad</em></div>
+    <div class="sub">打個房號，和任何人共同編輯一份筆記</div>
+    <form id="f">
+      <input id="room" placeholder="房號，例如 1111" autofocus autocomplete="off">
+      <button type="submit">進房</button>
+    </form>
+    <div class="err" id="err"></div>
+    <div class="hint">同一個房號＝同一份筆記，知道房號的人都能編輯。<br>房號可用英文、數字、「-」「_」，怕被猜就取長一點。</div>
+  </div>
+<script>
+  document.getElementById('f').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = document.getElementById('room').value.trim();
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(v)) {
+      document.getElementById('err').textContent = '房號只能用英文、數字、-、_（64 字內）';
+      return;
+    }
+    location.href = '/r/' + v;
+  });
+</script>
+</body>
+</html>

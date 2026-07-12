@@ -1,0 +1,8 @@
+node_modules/
+data/
+.env
+.env.*
+.pkg-hash
+.deploy-state.json
+.pm2-ecosystem.json
+.pm2-bg-ecosystem.json

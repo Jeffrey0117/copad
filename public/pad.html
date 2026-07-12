@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>copad</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f6; --panel: #ffffff; --ink: #24221c; --soft: #55524a; --mute: #9b968c;
+    --line: #e6e2d9; --accent: #b07d2e; --accent-bg: rgba(176,125,46,.09);
+    --code-bg: #f2efe7; --ok: #4e8a45; --err: #c0564a;
+  }
+  [data-theme="dark"] {
+    --bg: #0b0b0d; --panel: #121215; --ink: #ecece6; --soft: #b9b6ad; --mute: #6d6b64;
+    --line: #232328; --accent: #d8b26a; --accent-bg: rgba(216,178,106,.1);
+    --code-bg: #1a1a20; --ok: #7fb069; --err: #d06a5f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    transition: background .25s, color .25s;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px clamp(14px, 2.5vw, 28px);
+    border-bottom: 1px solid var(--line);
+    flex: none;
+  }
+  .brand { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 17px; text-decoration: none; color: var(--ink); }
+  .brand em { font-style: normal; color: var(--accent); }
+  .room {
+    font-size: 13px; letter-spacing: .12em; color: var(--soft);
+    background: var(--accent-bg); border-radius: 999px; padding: 4px 14px;
+  }
+  .status { font-size: 12px; letter-spacing: .08em; color: var(--mute); }
+  .status.saved { color: var(--ok); }
+  .status.err { color: var(--err); }
+  .sp { flex: 1; }
+  .online { font-size: 12px; color: var(--mute); letter-spacing: .08em; }
+  .online b { color: var(--accent); font-weight: 600; }
+  .hbtn {
+    background: none; border: 1px solid var(--line); border-radius: 9px;
+    color: var(--soft); font-family: inherit; font-size: 12.5px; letter-spacing: .08em;
+    padding: 7px 14px; cursor: pointer;
+  }
+  .hbtn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .main { flex: 1; display: flex; min-height: 0; }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .editor-col { border-right: 1px solid var(--line); }
+  textarea {
+    flex: 1; width: 100%; resize: none; border: none; outline: none;
+    background: var(--panel); color: var(--ink);
+    font-family: 'Cascadia Code', Consolas, 'Noto Sans TC', monospace;
+    font-size: 15px; line-height: 1.95; letter-spacing: .02em;
+    padding: clamp(18px, 3vh, 30px) clamp(18px, 2.5vw, 32px);
+    caret-color: var(--accent);
+    transition: background .25s, color .25s;
+  }
+  .preview {
+    flex: 1; overflow-y: auto;
+    padding: clamp(18px, 3vh, 30px) clamp(20px, 3vw, 40px);
+  }
+
+  /* ===== 預覽排版 ===== */
+  .preview h1 { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.4; margin: 1.4em 0 .6em; }
+  .preview h2 { font-family: 'Noto Serif TC', serif; font-weight: 700; font-size: clamp(20px, 2vw, 25px); line-height: 1.45; margin: 1.5em 0 .5em; }
+  .preview h3 { font-size: 12.5px; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--mute); margin: 1.8em 0 .7em; }
+  .preview h1:first-child, .preview h2:first-child { margin-top: 0; }
+  .preview p { font-size: 15.5px; line-height: 2.05; letter-spacing: .03em; color: var(--soft); margin: .8em 0; }
+  .preview ul { list-style: none; margin: .7em 0; }
+  .preview li.bullet { font-size: 15.5px; line-height: 1.95; color: var(--soft); padding: .15em 0 .15em 1.4em; position: relative; letter-spacing: .03em; }
+  .preview li.bullet::before { content: ''; position: absolute; left: .25em; top: .95em; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: .8; }
+  .preview li.task { font-size: 15.5px; line-height: 1.9; padding: .35em 0 .35em 1.9em; position: relative; color: var(--ink); }
+  .preview li.task::before { content: ''; position: absolute; left: .1em; top: .78em; width: 14px; height: 14px; border-radius: 5px; border: 1.5px solid var(--mute); }
+  .preview li.task.done { color: var(--mute); text-decoration: line-through; }
+  .preview li.task.done::before { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--panel); }
+  .preview blockquote { font-family: 'Noto Serif TC', serif; font-weight: 700; font-size: 16.5px; line-height: 1.95; border-left: 3px solid var(--accent); padding: .3em 0 .3em 1em; margin: 1.2em 0; }
+  .preview hr { border: none; height: 1px; background: var(--line); margin: 2em 0; }
+  .preview b { font-weight: 700; color: var(--ink); }
+  .preview em { font-style: normal; color: var(--accent); }
+  .preview code { font-family: 'Cascadia Code', Consolas, monospace; font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: .1em .4em; }
+  .preview a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
+
+  /* 手機：單欄 + 切換 */
+  .mtabs { display: none; }
+  @media (max-width: 820px) {
+    .mtabs { display: flex; flex: none; border-bottom: 1px solid var(--line); }
+    .mtabs button { flex: 1; background: none; border: none; font-family: inherit; font-size: 13px; letter-spacing: .2em; color: var(--mute); padding: 11px; cursor: pointer; }
+    .mtabs button.on { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+    .editor-col, .preview { display: none; }
+    body[data-view="edit"] .editor-col { display: flex; border-right: none; }
+    body[data-view="view"] .preview { display: block; }
+    .online, .room { display: none; }
+  }
+</style>
+</head>
+<body data-view="edit">
+  <header>
+    <a class="brand" href="/">co<em>pad</em></a>
+    <span class="room" id="roomTag"></span>
+    <span class="status" id="status">連線中…</span>
+    <span class="sp"></span>
+    <span class="online" id="online"></span>
+    <button class="hbtn" id="shareBtn">分享連結</button>
+    <button class="hbtn" id="themeBtn">深色</button>
+  </header>
+  <div class="mtabs">
+    <button id="tabEdit" class="on">編輯</button>
+    <button id="tabView">預覽</button>
+  </div>
+  <div class="main">
+    <div class="col editor-col">
+      <textarea id="editor" spellcheck="false" placeholder="開始打字，會自動儲存並同步給房裡所有人…"></textarea>
+    </div>
+    <div class="preview" id="preview"></div>
+  </div>
+<script>
+  const room = decodeURIComponent(location.pathname.split('/').pop());
+  document.getElementById('roomTag').textContent = room;
+  document.title = room + ' · copad';
+
+  const editor = document.getElementById('editor');
+  const preview = document.getElementById('preview');
+  const statusEl = document.getElementById('status');
+  const setStatus = (cls, t) => { statusEl.className = 'status ' + cls; statusEl.textContent = t; };
+
+  /* ===== markdown ===== */
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  function render(text) {
+    const out = []; let list = null;
+    const flush = () => { if (list) { out.push('<ul>' + list.join('') + '</ul>'); list = null; } };
+    for (const raw of text.split('\n')) {
+      const line = raw.trimEnd(); let m;
+      if (/^---+$/.test(line.trim())) { flush(); out.push('<hr>'); }
+      else if ((m = line.match(/^###\s+(.*)/))) { flush(); out.push('<h3>' + inline(m[1]) + '</h3>'); }
+      else if ((m = line.match(/^##\s+(.*)/))) { flush(); out.push('<h2>' + inline(m[1]) + '</h2>'); }
+      else if ((m = line.match(/^#\s+(.*)/))) { flush(); out.push('<h1>' + inline(m[1]) + '</h1>'); }
+      else if ((m = line.match(/^(?:-\s+)?\[( |x|X)\]\s+(.*)/))) { if (!list) list = []; list.push('<li class="task' + (m[1].toLowerCase()==='x'?' done':'') + '">' + inline(m[2]) + '</li>'); }
+      else if ((m = line.match(/^[-*]\s+(.*)/))) { if (!list) list = []; list.push('<li class="bullet">' + inline(m[1]) + '</li>'); }
+      else if ((m = line.match(/^>\s+(.*)/))) { flush(); out.push('<blockquote>' + inline(m[1]) + '</blockquote>'); }
+      else if (line.trim()) { flush(); out.push('<p>' + inline(line) + '</p>'); }
+      else flush();
+    }
+    flush(); return out.join('\n');
+  }
+  const renderPreview = () => { preview.innerHTML = render(editor.value); };
+
+  /* ===== 同步 ===== */
+  let lastSynced = null;   // 最後一次「已存或已收」的內容
+  let saveTimer = null;
+
+  async function save() {
+    const content = editor.value;
+    if (content === lastSynced) return;
+    setStatus('', '同步中…');
+    try {
+      const res = await fetch('/api/room/' + encodeURIComponent(room), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      lastSynced = content;
+      setStatus('saved', '已同步 ✓');
+    } catch (e) { setStatus('err', '同步失敗，重試中…'); setTimeout(save, 2500); }
+  }
+
+  editor.addEventListener('input', () => {
+    renderPreview();
+    setStatus('', '輸入中…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 600);
+  });
+
+  function connect() {
+    const es = new EventSource('/api/room/' + encodeURIComponent(room) + '/stream');
+    es.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'presence') {
+          document.getElementById('online').innerHTML = '<b>' + msg.count + '</b> 人在線';
+          return;
+        }
+        if (msg.type !== 'room') return;
+        const dirty = lastSynced !== null && editor.value !== lastSynced;
+        if (lastSynced === null) {          // 初次載入
+          editor.value = msg.content || '';
+          lastSynced = editor.value;
+          renderPreview();
+          setStatus('saved', '已同步 ✓');
+        } else if (!dirty && msg.content !== editor.value) {   // 別人改了，我沒在打 → 帶進來
+          const pos = editor.selectionStart;
+          editor.value = msg.content;
+          lastSynced = msg.content;
+          try { editor.setSelectionRange(pos, pos); } catch {}
+          renderPreview();
+          setStatus('saved', '已同步（他人更新）');
+        }
+      } catch {}
+    };
+    es.onerror = () => { es.close(); setStatus('err', '連線中斷，重連中…'); setTimeout(connect, 3000); };
+  }
+  connect();
+
+  /* Ctrl+S 立即存 */
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); save(); }
+  });
+
+  /* 分享 */
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(location.href); } catch {}
+    const b = document.getElementById('shareBtn');
+    b.textContent = '已複製 ✓'; setTimeout(() => b.textContent = '分享連結', 1600);
+  });
+
+  /* 主題切換（預設淺色） */
+  const themeBtn = document.getElementById('themeBtn');
+  function setTheme(t) {
+    if (t === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); themeBtn.textContent = '淺色'; }
+    else { document.documentElement.removeAttribute('data-theme'); themeBtn.textContent = '深色'; }
+    localStorage.setItem('copad_theme', t);
+  }
+  themeBtn.addEventListener('click', () => setTheme(document.documentElement.hasAttribute('data-theme') ? 'light' : 'dark'));
+  setTheme(localStorage.getItem('copad_theme') || 'light');
+
+  /* 手機分頁 */
+  const tabE = document.getElementById('tabEdit'), tabV = document.getElementById('tabView');
+  tabE.addEventListener('click', () => { document.body.dataset.view = 'edit'; tabE.classList.add('on'); tabV.classList.remove('on'); });
+  tabV.addEventListener('click', () => { document.body.dataset.view = 'view'; tabV.classList.add('on'); tabE.classList.remove('on'); renderPreview(); });
+</script>
+</body>
+</html>
