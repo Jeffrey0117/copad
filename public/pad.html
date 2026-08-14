@@ -117,6 +117,7 @@
     <span class="status" id="status">連線中…</span>
     <span class="sp"></span>
     <span class="online" id="online"></span>
+    <button class="hbtn" id="fsBtn">全螢幕</button>
     <button class="hbtn" id="readBtn">閱讀</button>
     <button class="hbtn" id="shareBtn">分享連結</button>
     <button class="hbtn" id="themeBtn">深色</button>
@@ -247,6 +248,17 @@
   }
   readBtn.addEventListener('click', () => setMode(!document.body.dataset.mode));
   if (new URLSearchParams(location.search).has('read')) setMode(true);
+
+  /* 全螢幕（Esc 或再按一次退出；手機 Safari 不支援就藏掉按鈕） */
+  const fsBtn = document.getElementById('fsBtn');
+  if (!document.documentElement.requestFullscreen) fsBtn.style.display = 'none';
+  fsBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  });
+  document.addEventListener('fullscreenchange', () => {
+    fsBtn.textContent = document.fullscreenElement ? '退出全螢幕' : '全螢幕';
+  });
 
   /* 貼圖：Ctrl+V 圖片 → 上傳 urusai（server 代打）→ 插入 markdown */
   let pasteSeq = 0;

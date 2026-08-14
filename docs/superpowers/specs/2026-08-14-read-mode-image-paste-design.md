@@ -17,6 +17,10 @@
 - **Renderer**：inline() 加 `![alt](url)` → `<img>`（regex 在連結規則之前跑）。CSS：`.preview img { max-width:100%; border-radius; border }`。
 - DEFAULT_CONTENT 加一行提示「貼上圖片會自動上傳」。
 
+## 3. 全螢幕模式（追加，2026-08-14）
+
+- header 加「全螢幕」鈕：Fullscreen API 切換整頁全螢幕，Esc 或再按一次退出；不支援的環境（手機 Safari）自動藏鈕。header 保留（含閱讀/主題鈕，Esc 可退）。
+
 ## 不做（YAGNI）
 
 - 拖放上傳、多檔、進度條、本機備援儲存、閱讀模式權限鎖。
