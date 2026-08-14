@@ -89,6 +89,7 @@
   .preview em { font-style: normal; color: var(--accent); }
   .preview code { font-family: 'Cascadia Code', Consolas, monospace; font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: .1em .4em; }
   .preview a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
+  .preview img { display: block; max-width: 100%; border-radius: 10px; border: 1px solid var(--line); margin: .5em 0; }
 
   /* 手機：單欄 + 切換 */
   .mtabs { display: none; }
@@ -101,6 +102,12 @@
     body[data-view="view"] .preview { display: block; }
     .online, .room { display: none; }
   }
+
+  /* ===== 閱讀模式（UI 模式，不是權限鎖；放在 media query 之後才蓋得過手機分頁規則） ===== */
+  body[data-mode="read"] .editor-col { display: none; }
+  body[data-mode="read"] .mtabs { display: none; }
+  body[data-mode="read"] .main { justify-content: center; overflow-y: auto; }
+  body[data-mode="read"] .preview { display: block; flex: none; width: min(760px, 100%); overflow-y: visible; }
 </style>
 </head>
 <body data-view="edit">
@@ -110,6 +117,7 @@
     <span class="status" id="status">連線中…</span>
     <span class="sp"></span>
     <span class="online" id="online"></span>
+    <button class="hbtn" id="readBtn">閱讀</button>
     <button class="hbtn" id="shareBtn">分享連結</button>
     <button class="hbtn" id="themeBtn">深色</button>
   </header>
@@ -139,6 +147,7 @@
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+    .replace(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
     .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   function render(text) {
     const out = []; let list = null;
@@ -227,6 +236,60 @@
     const b = document.getElementById('shareBtn');
     b.textContent = '已複製 ✓'; setTimeout(() => b.textContent = '分享連結', 1600);
   });
+
+  /* 閱讀模式：切換鈕 + ?read 可分享 */
+  const readBtn = document.getElementById('readBtn');
+  function setMode(read) {
+    if (read) { document.body.dataset.mode = 'read'; readBtn.textContent = '編輯'; }
+    else { delete document.body.dataset.mode; readBtn.textContent = '閱讀'; }
+    history.replaceState(null, '', location.pathname + (read ? '?read' : ''));
+    if (read) renderPreview();
+  }
+  readBtn.addEventListener('click', () => setMode(!document.body.dataset.mode));
+  if (new URLSearchParams(location.search).has('read')) setMode(true);
+
+  /* 貼圖：Ctrl+V 圖片 → 上傳 urusai（server 代打）→ 插入 markdown */
+  let pasteSeq = 0;
+  editor.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.kind === 'file' && /^image\//.test(it.type)) {
+        e.preventDefault();
+        uploadImage(it.getAsFile());
+        return;
+      }
+    }
+  });
+  async function uploadImage(file) {
+    const ph = '![上傳中 #' + (++pasteSeq) + '…]()';
+    const start = editor.selectionStart, end = editor.selectionEnd;
+    editor.value = editor.value.slice(0, start) + ph + editor.value.slice(end);
+    editor.setSelectionRange(start + ph.length, start + ph.length);
+    renderPreview();
+    setStatus('', '圖片上傳中…');
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || 'HTTP ' + res.status);
+      replacePlaceholder(ph, '![圖片](' + j.url + ')');
+      setStatus('saved', '圖片已上傳 ✓');
+    } catch {
+      replacePlaceholder(ph, '');
+      setStatus('err', '圖片上傳失敗');
+    }
+    renderPreview();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 600);
+  }
+  function replacePlaceholder(ph, s) {
+    const i = editor.value.indexOf(ph);
+    if (i < 0) return;
+    const pos = editor.selectionStart;
+    editor.value = editor.value.slice(0, i) + s + editor.value.slice(i + ph.length);
+    const shift = pos > i ? s.length - ph.length : 0;
+    try { editor.setSelectionRange(pos + shift, pos + shift); } catch {}
+  }
 
   /* 主題切換（預設淺色） */
   const themeBtn = document.getElementById('themeBtn');
