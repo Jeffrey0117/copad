@@ -1,8 +1,8 @@
 // copad — 共同編輯筆記（hackmd-lite）
 // GET  /                首頁（打房號進房）
 // GET  /r/{room}        編輯頁
-// GET  /api/room/{id}          內容 JSON
-// PUT  /api/room/{id}          存內容（知道房號=有權限，LWW）
+// GET  /api/room/{id}          內容 JSON（content + canvas）
+// PUT  /api/room/{id}          存內容（知道房號=有權限，LWW；content / canvas 可分開送，server 合併）
 // GET  /api/room/{id}/stream   SSE：內容變更 + 在線人數
 // POST /api/upload             貼圖：代打 urusai.cc 匿名圖床，回 { ok, url }
 const http = require('http');
@@ -32,19 +32,46 @@ const DEFAULT_CONTENT = [
   '- 左邊打字，右邊即時預覽',
   '- 支援 `# 標題`、`- 列點`、`[ ] 待辦`、`> 引言`、`**粗體**`、`` `code` ``、`[連結](網址)`',
   '- 直接貼上圖片（Ctrl+V）會自動上傳插入',
+  '- 右邊是**畫布**：文字框可以拖曳、縮放；「背景」設底圖、「貼圖」或直接把圖片拖進畫布，貼圖能移動放大縮小',
   '- 右上角「閱讀」切換純閱讀版面，網址加 `?read` 可以直接分享閱讀版',
   '- 停止輸入就自動儲存，所有人即時同步',
 ].join('\n');
 
 function roomFile(id) { return path.join(ROOMS_DIR, id + '.json'); }
 function readRoom(id) {
-  try { return JSON.parse(fs.readFileSync(roomFile(id), 'utf8')); }
-  catch { return { content: DEFAULT_CONTENT, version: 0, updatedAt: null }; }
+  try {
+    const r = JSON.parse(fs.readFileSync(roomFile(id), 'utf8'));
+    if (r.canvas === undefined) r.canvas = null;
+    return r;
+  }
+  catch { return { content: DEFAULT_CONTENT, canvas: null, version: 0, updatedAt: null }; }
 }
-function writeRoom(id, content) {
+
+// 畫布狀態：{ bg, frame:{x,y,w,h}, stickers:[{id,url,x,y,w}] }（座標一律 % of 畫布）
+function sanitizeCanvas(c) {
+  if (c === null) return null;
+  if (typeof c !== 'object' || Array.isArray(c)) throw new Error('canvas must be object');
+  const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 100) / 100 : d;
+  const url = v => (typeof v === 'string' && /^https?:\/\//.test(v) && v.length < 2048) ? v : null;
+  const f = (c.frame && typeof c.frame === 'object') ? c.frame : {};
+  return {
+    bg: url(c.bg),
+    frame: { x: num(f.x, 4), y: num(f.y, 4), w: num(f.w, 92), h: num(f.h, 92) },
+    stickers: (Array.isArray(c.stickers) ? c.stickers : []).slice(0, 100)
+      .map(s => ({ id: String(s.id || '').slice(0, 40), url: url(s.url), x: num(s.x, 40), y: num(s.y, 35), w: num(s.w, 22) }))
+      .filter(s => s.id && s.url),
+  };
+}
+
+function writeRoom(id, patch) {
   if (!fs.existsSync(ROOMS_DIR)) fs.mkdirSync(ROOMS_DIR, { recursive: true });
   const prev = readRoom(id);
-  const room = { content, version: (prev.version || 0) + 1, updatedAt: new Date().toISOString() };
+  const room = {
+    content: typeof patch.content === 'string' ? patch.content : prev.content,
+    canvas: patch.canvas !== undefined ? patch.canvas : prev.canvas,
+    version: (prev.version || 0) + 1,
+    updatedAt: new Date().toISOString(),
+  };
   fs.writeFileSync(roomFile(id), JSON.stringify(room));
   return room;
 }
@@ -141,9 +168,15 @@ const server = http.createServer((req, res) => {
       req.on('data', d => { body += d; if (body.length > MAX_BYTES) req.destroy(); });
       req.on('end', () => {
         try {
-          const { content } = JSON.parse(body);
-          if (typeof content !== 'string') throw new Error('content must be string');
-          const room = writeRoom(id, content);
+          const b = JSON.parse(body);
+          const patch = {};
+          if (b.content !== undefined) {
+            if (typeof b.content !== 'string') throw new Error('content must be string');
+            patch.content = b.content;
+          }
+          if (b.canvas !== undefined) patch.canvas = sanitizeCanvas(b.canvas);
+          if (patch.content === undefined && patch.canvas === undefined) throw new Error('nothing to save');
+          const room = writeRoom(id, patch);
           push(id, { type: 'room', ...room });
           json(res, 200, { ok: true, version: room.version, updatedAt: room.updatedAt });
         } catch (e) { json(res, 400, { ok: false, error: e.message }); }

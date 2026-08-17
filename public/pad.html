@@ -10,12 +10,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #faf9f6; --panel: #ffffff; --ink: #24221c; --soft: #55524a; --mute: #9b968c;
+    --bg: #faf9f6; --panel: #ffffff; --panel-t: rgba(255,255,255,.92); --ink: #24221c; --soft: #55524a; --mute: #9b968c;
     --line: #e6e2d9; --accent: #b07d2e; --accent-bg: rgba(176,125,46,.09);
     --code-bg: #f2efe7; --ok: #4e8a45; --err: #c0564a;
   }
   [data-theme="dark"] {
-    --bg: #0b0b0d; --panel: #121215; --ink: #ecece6; --soft: #b9b6ad; --mute: #6d6b64;
+    --bg: #0b0b0d; --panel: #121215; --panel-t: rgba(18,18,21,.9); --ink: #ecece6; --soft: #b9b6ad; --mute: #6d6b64;
     --line: #232328; --accent: #d8b26a; --accent-bg: rgba(216,178,106,.1);
     --code-bg: #1a1a20; --ok: #7fb069; --err: #d06a5f;
   }
@@ -29,7 +29,7 @@
   }
 
   header {
-    display: flex; align-items: center; gap: 14px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     padding: 12px clamp(14px, 2.5vw, 28px);
     border-bottom: 1px solid var(--line);
     flex: none;
@@ -65,16 +65,72 @@
     caret-color: var(--accent);
     transition: background .25s, color .25s;
   }
+
+  /* ===== 畫布（右欄） ===== */
   .preview {
-    flex: 1; overflow-y: auto;
-    padding: clamp(18px, 3vh, 30px) clamp(20px, 3vw, 40px);
+    flex: 1; min-width: 0; position: relative; overflow: hidden;
+    background-color: var(--bg); background-size: cover; background-position: center;
   }
+
+  /* 文字框：可拖曳 / 縮放 */
+  .tframe {
+    position: absolute; display: flex; flex-direction: column;
+    background: var(--panel-t); backdrop-filter: blur(6px);
+    border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.10);
+    min-width: 140px; min-height: 90px;
+  }
+  .fdrag {
+    flex: none; height: 24px; cursor: grab; touch-action: none;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--mute); font-size: 13px; letter-spacing: .35em; text-indent: .35em;
+    opacity: 0; transition: opacity .15s; user-select: none;
+  }
+  .tframe:hover .fdrag { opacity: .9; }
+  .fdrag:active { cursor: grabbing; }
+  .tbody { flex: 1; min-height: 0; overflow-y: auto; padding: 2px clamp(18px, 2.5vw, 34px) clamp(14px, 2.5vh, 24px); }
+  .frz {
+    position: absolute; right: -2px; bottom: -2px; width: 18px; height: 18px;
+    cursor: nwse-resize; touch-action: none;
+    border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent);
+    border-radius: 0 0 12px 0; opacity: 0; transition: opacity .15s;
+  }
+  .tframe:hover .frz { opacity: .8; }
+
+  /* 貼圖 */
+  .sticker { position: absolute; touch-action: none; cursor: grab; user-select: none; min-width: 24px; min-height: 24px; }
+  .sticker:active { cursor: grabbing; }
+  .sticker img { width: 100%; display: block; pointer-events: none; border-radius: 8px; filter: drop-shadow(0 4px 14px rgba(0,0,0,.18)); }
+  .sticker.sel { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+  .sdel {
+    position: absolute; top: -10px; right: -10px; width: 22px; height: 22px;
+    border-radius: 50%; border: none; background: var(--err); color: #fff;
+    font-size: 14px; line-height: 1; cursor: pointer; display: none; z-index: 2;
+  }
+  .srz {
+    position: absolute; right: -7px; bottom: -7px; width: 16px; height: 16px;
+    background: var(--accent); border: 2px solid var(--panel); border-radius: 50%;
+    cursor: nwse-resize; touch-action: none; display: none; z-index: 2;
+  }
+  .sticker.sel .sdel, .sticker.sel .srz { display: block; }
+
+  /* 背景小選單 */
+  .pop {
+    position: fixed; z-index: 50; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.15); padding: 6px;
+    display: flex; flex-direction: column; min-width: 150px;
+  }
+  .pop button {
+    background: none; border: none; font-family: inherit; font-size: 13px; color: var(--ink);
+    text-align: left; padding: 9px 12px; border-radius: 8px; cursor: pointer; letter-spacing: .05em;
+  }
+  .pop button:hover { background: var(--accent-bg); color: var(--accent); }
 
   /* ===== 預覽排版 ===== */
   .preview h1 { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.4; margin: 1.4em 0 .6em; }
   .preview h2 { font-family: 'Noto Serif TC', serif; font-weight: 700; font-size: clamp(20px, 2vw, 25px); line-height: 1.45; margin: 1.5em 0 .5em; }
   .preview h3 { font-size: 12.5px; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--mute); margin: 1.8em 0 .7em; }
-  .preview h1:first-child, .preview h2:first-child { margin-top: 0; }
+  .tbody h1:first-child, .tbody h2:first-child { margin-top: .3em; }
   .preview p { font-size: 15.5px; line-height: 2.05; letter-spacing: .03em; color: var(--soft); margin: .8em 0; }
   .preview ul { list-style: none; margin: .7em 0; }
   .preview li.bullet { font-size: 15.5px; line-height: 1.95; color: var(--soft); padding: .15em 0 .15em 1.4em; position: relative; letter-spacing: .03em; }
@@ -89,7 +145,7 @@
   .preview em { font-style: normal; color: var(--accent); }
   .preview code { font-family: 'Cascadia Code', Consolas, monospace; font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: .1em .4em; }
   .preview a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
-  .preview img { display: block; max-width: 100%; border-radius: 10px; border: 1px solid var(--line); margin: .5em 0; }
+  .preview .tbody img { display: block; max-width: 100%; border-radius: 10px; border: 1px solid var(--line); margin: .5em 0; }
 
   /* 手機：單欄 + 切換 */
   .mtabs { display: none; }
@@ -106,8 +162,14 @@
   /* ===== 閱讀模式（UI 模式，不是權限鎖；放在 media query 之後才蓋得過手機分頁規則） ===== */
   body[data-mode="read"] .editor-col { display: none; }
   body[data-mode="read"] .mtabs { display: none; }
-  body[data-mode="read"] .main { justify-content: center; overflow-y: auto; }
-  body[data-mode="read"] .preview { display: block; flex: none; width: min(760px, 100%); overflow-y: visible; }
+  body[data-mode="read"] .preview { display: block; }
+  body[data-mode="read"] .fdrag, body[data-mode="read"] .frz,
+  body[data-mode="read"] .sdel, body[data-mode="read"] .srz,
+  body[data-mode="read"] #bgBtn, body[data-mode="read"] #stkBtn { display: none; }
+  body[data-mode="read"] .sticker { cursor: default; }
+  body[data-mode="read"] .tbody { padding-top: clamp(14px, 2.5vh, 24px); }
+  /* 沒背景圖時，閱讀模式的文字框收掉卡片感，回到乾淨閱讀版面 */
+  body[data-mode="read"] .preview:not(.has-bg) .tframe { border-color: transparent; box-shadow: none; background: none; backdrop-filter: none; }
 </style>
 </head>
 <body data-view="edit">
@@ -117,6 +179,8 @@
     <span class="status" id="status">連線中…</span>
     <span class="sp"></span>
     <span class="online" id="online"></span>
+    <button class="hbtn" id="bgBtn">背景</button>
+    <button class="hbtn" id="stkBtn">貼圖</button>
     <button class="hbtn" id="fsBtn">全螢幕</button>
     <button class="hbtn" id="readBtn">閱讀</button>
     <button class="hbtn" id="shareBtn">分享連結</button>
@@ -130,17 +194,34 @@
     <div class="col editor-col">
       <textarea id="editor" spellcheck="false" placeholder="開始打字，會自動儲存並同步給房裡所有人…"></textarea>
     </div>
-    <div class="preview" id="preview"></div>
+    <div class="preview" id="preview">
+      <div class="tframe" id="tframe">
+        <div class="fdrag" id="fdrag" title="拖曳移動文字框">⠿⠿⠿</div>
+        <div class="tbody" id="tbody"></div>
+        <div class="frz" id="frz" title="拖曳縮放"></div>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="bgFile" accept="image/*" hidden>
+  <input type="file" id="stkFile" accept="image/*" multiple hidden>
+  <div class="pop" id="bgPop" hidden>
+    <button id="bgUpBtn">上傳圖片</button>
+    <button id="bgUrlBtn">貼圖片網址</button>
+    <button id="bgClearBtn">清除背景</button>
   </div>
 <script>
   const room = decodeURIComponent(location.pathname.split('/').pop());
   document.getElementById('roomTag').textContent = room;
   document.title = room + ' · copad';
 
-  const editor = document.getElementById('editor');
-  const preview = document.getElementById('preview');
-  const statusEl = document.getElementById('status');
+  const $ = id => document.getElementById(id);
+  const editor = $('editor');
+  const preview = $('preview');
+  const tframe = $('tframe');
+  const tbody = $('tbody');
+  const statusEl = $('status');
   const setStatus = (cls, t) => { statusEl.className = 'status ' + cls; statusEl.textContent = t; };
+  const canEdit = () => !document.body.dataset.mode;
 
   /* ===== markdown ===== */
   const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -167,7 +248,226 @@
     }
     flush(); return out.join('\n');
   }
-  const renderPreview = () => { preview.innerHTML = render(editor.value); };
+  const renderPreview = () => { tbody.innerHTML = render(editor.value); };
+
+  /* ===== 畫布狀態（座標一律 % of 畫布） ===== */
+  const r2 = v => Math.round(v * 100) / 100;
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  function normCv(c) {
+    c = (c && typeof c === 'object') ? c : {};
+    const f = (c.frame && typeof c.frame === 'object') ? c.frame : {};
+    const n = (v, d) => (typeof v === 'number' && isFinite(v)) ? r2(v) : d;
+    return {
+      bg: (typeof c.bg === 'string' && c.bg) ? c.bg : null,
+      frame: { x: n(f.x, 4), y: n(f.y, 4), w: n(f.w, 92), h: n(f.h, 92) },
+      stickers: (Array.isArray(c.stickers) ? c.stickers : [])
+        .map(s => ({ id: String(s.id || ''), url: typeof s.url === 'string' ? s.url : '', x: n(s.x, 40), y: n(s.y, 35), w: n(s.w, 22) }))
+        .filter(s => s.id && s.url),
+    };
+  }
+  let cv = normCv(null);
+  let cvSynced = null;      // 最後一次已存/已收的畫布 JSON
+  let cvPending = false;    // 有畫布變更還沒存
+  let cvTimer = null;
+  let dragging = false;
+  let selId = null;         // 選取中的貼圖
+
+  function applyFrame() {
+    tframe.style.left = cv.frame.x + '%';
+    tframe.style.top = cv.frame.y + '%';
+    tframe.style.width = cv.frame.w + '%';
+    tframe.style.height = cv.frame.h + '%';
+  }
+  function applyCanvas() {
+    preview.style.backgroundImage = cv.bg ? 'url("' + cv.bg.replace(/"/g, '%22') + '")' : 'none';
+    preview.classList.toggle('has-bg', !!cv.bg);
+    applyFrame();
+    renderStickers();
+  }
+
+  function cvChanged() {
+    cvPending = true;
+    clearTimeout(cvTimer);
+    cvTimer = setTimeout(saveCanvas, 500);
+  }
+  async function saveCanvas() {
+    const snap = JSON.stringify(cv);
+    if (snap === cvSynced) { cvPending = false; return; }
+    setStatus('', '同步中…');
+    try {
+      const res = await fetch('/api/room/' + encodeURIComponent(room), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canvas: cv }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      cvSynced = snap;
+      if (JSON.stringify(cv) !== snap) { saveCanvas(); return; }   // 存的途中又改了 → 再存一次
+      cvPending = false;
+      setStatus('saved', '已同步 ✓');
+    } catch { setStatus('err', '同步失敗，重試中…'); cvTimer = setTimeout(saveCanvas, 2500); }
+  }
+
+  /* 通用拖曳：pointer capture，回呼拿 % 位移 */
+  function pdrag(handle, onStart, onMove) {
+    handle.addEventListener('pointerdown', e => {
+      if (!canEdit()) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const rect = preview.getBoundingClientRect();
+      const st = onStart(e);
+      const x0 = e.clientX, y0 = e.clientY;
+      dragging = true;
+      try { handle.setPointerCapture(e.pointerId); } catch {}
+      const move = ev => onMove(st, (ev.clientX - x0) / rect.width * 100, (ev.clientY - y0) / rect.height * 100);
+      const up = () => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('pointercancel', up);
+        dragging = false;
+        cvChanged();
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+      handle.addEventListener('pointercancel', up);
+    });
+  }
+
+  /* 文字框拖曳 + 縮放（clamp 讓整個框永遠留在畫布內，縮放把手才不會被裁掉） */
+  pdrag($('fdrag'), () => ({ ...cv.frame }), (st, dx, dy) => {
+    cv.frame.x = r2(clamp(st.x + dx, 0, Math.max(0, 100 - cv.frame.w)));
+    cv.frame.y = r2(clamp(st.y + dy, 0, Math.max(0, 100 - cv.frame.h)));
+    applyFrame();
+  });
+  pdrag($('frz'), () => ({ ...cv.frame }), (st, dx, dy) => {
+    cv.frame.w = r2(clamp(st.w + dx, 16, 100 - cv.frame.x));
+    cv.frame.h = r2(clamp(st.h + dy, 12, 100 - cv.frame.y));
+    applyFrame();
+  });
+
+  /* 貼圖 */
+  function select(id) {
+    selId = id;
+    for (const el of preview.querySelectorAll('.sticker')) el.classList.toggle('sel', el.dataset.id === id);
+  }
+  function renderStickers() {
+    for (const el of preview.querySelectorAll('.sticker')) el.remove();
+    for (const s of cv.stickers) {
+      const el = document.createElement('div');
+      el.className = 'sticker' + (s.id === selId ? ' sel' : '');
+      el.dataset.id = s.id;
+      el.style.left = s.x + '%'; el.style.top = s.y + '%'; el.style.width = s.w + '%';
+
+      const img = document.createElement('img');
+      img.src = s.url; img.alt = ''; img.draggable = false;
+      el.appendChild(img);
+
+      const del = document.createElement('button');
+      del.className = 'sdel'; del.textContent = '×'; del.title = '刪除貼圖';
+      del.addEventListener('pointerdown', e => e.stopPropagation());
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        cv.stickers = cv.stickers.filter(x => x.id !== s.id);
+        selId = null; renderStickers(); cvChanged();
+      });
+      el.appendChild(del);
+
+      const rz = document.createElement('div');
+      rz.className = 'srz'; rz.title = '拖曳縮放';
+      el.appendChild(rz);
+
+      pdrag(el, () => { select(s.id); return { x: s.x, y: s.y }; }, (st, dx, dy) => {
+        s.x = r2(clamp(st.x + dx, -s.w + 4, 98));
+        s.y = r2(clamp(st.y + dy, 0, 96));
+        el.style.left = s.x + '%'; el.style.top = s.y + '%';
+      });
+      pdrag(rz, () => ({ w: s.w }), (st, dx) => {
+        s.w = r2(clamp(st.w + dx, 4, 100));
+        el.style.width = s.w + '%';
+      });
+
+      preview.appendChild(el);
+    }
+  }
+  function addSticker(url, x, y) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    cv.stickers = [...cv.stickers, { id, url, x: r2(clamp(x, 0, 96)), y: r2(clamp(y, 0, 96)), w: 22 }];
+    select(id);
+    renderStickers();
+    cvChanged();
+  }
+  preview.addEventListener('pointerdown', e => { if (e.target === preview) select(null); });
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selId && canEdit() && document.activeElement !== editor) {
+      e.preventDefault();
+      cv.stickers = cv.stickers.filter(x => x.id !== selId);
+      selId = null; renderStickers(); cvChanged();
+    }
+  });
+
+  /* ===== 上傳（背景 / 貼圖共用 server 代打 urusai） ===== */
+  async function upload(file) {
+    const res = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'HTTP ' + res.status);
+    return j.url;
+  }
+
+  /* 背景：小選單（上傳 / 貼網址 / 清除） */
+  const bgPop = $('bgPop');
+  $('bgBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (!bgPop.hidden) { bgPop.hidden = true; return; }
+    $('bgClearBtn').style.display = cv.bg ? '' : 'none';
+    const r = e.currentTarget.getBoundingClientRect();
+    bgPop.style.top = (r.bottom + 6) + 'px';
+    bgPop.style.left = Math.min(r.left, window.innerWidth - 170) + 'px';
+    bgPop.hidden = false;
+  });
+  document.addEventListener('pointerdown', e => { if (!bgPop.hidden && !bgPop.contains(e.target)) bgPop.hidden = true; });
+  $('bgUpBtn').addEventListener('click', () => { bgPop.hidden = true; $('bgFile').click(); });
+  $('bgUrlBtn').addEventListener('click', () => {
+    bgPop.hidden = true;
+    const u = prompt('圖片網址（https://…）', cv.bg || '');
+    if (u === null) return;
+    if (/^https?:\/\//.test(u.trim())) { cv = { ...cv, bg: u.trim() }; applyCanvas(); cvChanged(); }
+    else if (u.trim()) alert('要是 http(s) 開頭的圖片網址');
+  });
+  $('bgClearBtn').addEventListener('click', () => { bgPop.hidden = true; cv = { ...cv, bg: null }; applyCanvas(); cvChanged(); });
+  $('bgFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    setStatus('', '背景上傳中…');
+    try { cv = { ...cv, bg: await upload(f) }; applyCanvas(); cvChanged(); }
+    catch { setStatus('err', '背景上傳失敗'); }
+  });
+
+  /* 貼圖：按鈕選檔 / 拖圖片檔進畫布 / 焦點不在編輯器時 Ctrl+V */
+  $('stkBtn').addEventListener('click', () => $('stkFile').click());
+  $('stkFile').addEventListener('change', async e => {
+    const files = [...e.target.files]; e.target.value = '';
+    let x = 38, y = 30;
+    for (const f of files) {
+      setStatus('', '貼圖上傳中…');
+      try { addSticker(await upload(f), x, y); x += 4; y += 4; }
+      catch { setStatus('err', '貼圖上傳失敗'); }
+    }
+  });
+  preview.addEventListener('dragover', e => { if (canEdit()) e.preventDefault(); });
+  preview.addEventListener('drop', async e => {
+    if (!canEdit()) return;
+    e.preventDefault();
+    const files = [...(e.dataTransfer.files || [])].filter(f => /^image\//.test(f.type));
+    if (!files.length) return;
+    const rect = preview.getBoundingClientRect();
+    let x = (e.clientX - rect.left) / rect.width * 100 - 11;
+    let y = (e.clientY - rect.top) / rect.height * 100 - 8;
+    for (const f of files) {
+      setStatus('', '貼圖上傳中…');
+      try { addSticker(await upload(f), x, y); x += 4; y += 4; }
+      catch { setStatus('err', '貼圖上傳失敗'); }
+    }
+  });
 
   /* ===== 同步 ===== */
   let lastSynced = null;   // 最後一次「已存或已收」的內容
@@ -206,6 +506,13 @@
           return;
         }
         if (msg.type !== 'room') return;
+        // 畫布
+        if ('canvas' in msg) {
+          const inc = JSON.stringify(normCv(msg.canvas));
+          if (cvSynced === null) { cv = JSON.parse(inc); cvSynced = inc; applyCanvas(); }
+          else if (!dragging && !cvPending && inc !== JSON.stringify(cv)) { cv = JSON.parse(inc); cvSynced = inc; applyCanvas(); }
+        }
+        // 內容
         const dirty = lastSynced !== null && editor.value !== lastSynced;
         if (lastSynced === null) {          // 初次載入
           editor.value = msg.content || '';
@@ -224,11 +531,16 @@
     };
     es.onerror = () => { es.close(); setStatus('err', '連線中斷，重連中…'); setTimeout(connect, 3000); };
   }
+  applyCanvas();
   connect();
 
   /* Ctrl+S 立即存 */
   document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); save(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      clearTimeout(saveTimer); save();
+      clearTimeout(cvTimer); saveCanvas();
+    }
   });
 
   /* 分享 */
@@ -241,7 +553,7 @@
   /* 閱讀模式：切換鈕 + ?read 可分享 */
   const readBtn = document.getElementById('readBtn');
   function setMode(read) {
-    if (read) { document.body.dataset.mode = 'read'; readBtn.textContent = '編輯'; }
+    if (read) { document.body.dataset.mode = 'read'; readBtn.textContent = '編輯'; select(null); }
     else { delete document.body.dataset.mode; readBtn.textContent = '閱讀'; }
     history.replaceState(null, '', location.pathname + (read ? '?read' : ''));
     if (read) renderPreview();
@@ -260,15 +572,20 @@
     fsBtn.textContent = document.fullscreenElement ? '退出全螢幕' : '全螢幕';
   });
 
-  /* 貼圖：Ctrl+V 圖片 → 上傳 urusai（server 代打）→ 插入 markdown */
+  /* 貼圖上傳：編輯器內 Ctrl+V → markdown；焦點在畫布/其他處 → 畫布貼圖 */
   let pasteSeq = 0;
-  editor.addEventListener('paste', e => {
+  document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
     for (const it of items) {
       if (it.kind === 'file' && /^image\//.test(it.type)) {
         e.preventDefault();
-        uploadImage(it.getAsFile());
+        const f = it.getAsFile();
+        if (document.activeElement === editor) uploadImage(f);
+        else if (canEdit()) {
+          setStatus('', '貼圖上傳中…');
+          upload(f).then(u => addSticker(u, 38, 30)).catch(() => setStatus('err', '貼圖上傳失敗'));
+        }
         return;
       }
     }
@@ -281,9 +598,7 @@
     renderPreview();
     setStatus('', '圖片上傳中…');
     try {
-      const res = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
-      const j = await res.json();
-      if (!j.ok) throw new Error(j.error || 'HTTP ' + res.status);
+      const j = { url: await upload(file) };
       replacePlaceholder(ph, '![圖片](' + j.url + ')');
       setStatus('saved', '圖片已上傳 ✓');
     } catch {
