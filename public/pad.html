@@ -120,6 +120,8 @@
     border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.15); padding: 6px;
     display: flex; flex-direction: column; min-width: 150px;
   }
+  /* .pop 的 display:flex 會蓋掉 hidden 屬性，不補這條選單會永遠攤在左上角 */
+  .pop[hidden] { display: none; }
   .pop button {
     background: none; border: none; font-family: inherit; font-size: 13px; color: var(--ink);
     text-align: left; padding: 9px 12px; border-radius: 8px; cursor: pointer; letter-spacing: .05em;
