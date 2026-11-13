@@ -170,6 +170,7 @@
       font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: .18em; cursor: pointer;
     }
     .mshare button:active { opacity: .85; }
+    .mshare button.ghost { background: var(--panel); color: var(--ink); border: 1.5px solid var(--line); margin-bottom: 8px; }
   }
 
   /* ===== 閱讀模式（UI 模式，不是權限鎖；放在 media query 之後才蓋得過手機分頁規則） ===== */
@@ -178,7 +179,7 @@
   body[data-mode="read"] .preview { display: block; }
   body[data-mode="read"] .fdrag, body[data-mode="read"] .frz,
   body[data-mode="read"] .sdel, body[data-mode="read"] .srz,
-  body[data-mode="read"] #bgBtn, body[data-mode="read"] #stkBtn { display: none; }
+  body[data-mode="read"] #bgBtn, body[data-mode="read"] #stkBtn, body[data-mode="read"] #pasteBtnM { display: none; }
   body[data-mode="read"] .sticker { cursor: default; }
   body[data-mode="read"] .tbody { padding-top: clamp(14px, 2.5vh, 24px); }
   /* 沒背景圖時，閱讀模式的文字框收掉卡片感，回到乾淨閱讀版面 */
@@ -215,7 +216,7 @@
       </div>
     </div>
   </div>
-  <div class="mshare"><button id="shareBtnM">複製連結</button></div>
+  <div class="mshare"><button id="pasteBtnM" class="ghost">貼上</button><button id="shareBtnM">複製連結</button></div>
   <input type="file" id="bgFile" accept="image/*" hidden>
   <input type="file" id="stkFile" accept="image/*" multiple hidden>
   <div class="pop" id="bgPop" hidden>
@@ -566,6 +567,28 @@
       setTimeout(() => { b.textContent = '複製連結'; }, 1600);
     });
   }
+
+  /* 手機「貼上」鈕：剪貼簿是圖片就上傳，是文字就插到游標處 */
+  async function pasteFromClipboard() {
+    let text = '';
+    if (navigator.clipboard.read) {
+      for (const it of await navigator.clipboard.read()) {
+        const t = it.types.find(x => x.startsWith('image/'));
+        if (t) { await uploadImage(new File([await it.getType(t)], 'paste', { type: t })); return; }
+        if (it.types.includes('text/plain')) text = await (await it.getType('text/plain')).text();
+      }
+    } else text = await navigator.clipboard.readText();
+    if (!text) throw new Error('empty');
+    editor.setRangeText(text, editor.selectionStart, editor.selectionEnd, 'end');
+    editor.dispatchEvent(new Event('input'));
+  }
+  $('pasteBtnM').addEventListener('click', async e => {
+    const b = e.currentTarget;
+    let ok = true;
+    try { await pasteFromClipboard(); } catch { ok = false; }
+    b.textContent = ok ? '已貼上 ✓' : '貼不了，請長按編輯區貼上';
+    setTimeout(() => { b.textContent = '貼上'; }, 1600);
+  });
 
   /* 閱讀模式：切換鈕 + ?read 可分享 */
   const readBtn = document.getElementById('readBtn');
